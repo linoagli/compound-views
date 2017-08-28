@@ -1,0 +1,144 @@
+apply plugin: 'com.android.library'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.github.dcendents.android-maven'
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion "26.0.1"
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    implementation 'com.android.support:appcompat-v7:26.0.1'
+    implementation 'com.android.support:design:26.0.1'
+
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.0'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.0'
+}
+
+
+/**
+ * Bintray publishing
+ */
+ext {
+    publish_bintrayRepo = 'maven-repo'
+    publish_bintrayName = 'compound-views'
+
+    publish_name = 'compound-views'
+    publish_description = ''
+    publish_siteUrl = 'https://github.com/linoagli/compound-views'
+    publish_gitUrl = 'https://github.com/linoagli/compound-views.git'
+    publish_year = '2017'
+    publish_developerName = 'Faye-Lino Agli'
+    publish_developerEmail = 'perfectionisms@gmail.com'
+
+    publish_version = '1.0'
+    publish_groupId = 'com.linoagli.android'
+    publish_artifactId = 'compound-views'
+    publish_packaging = 'aar'
+
+    publish_license = ['Apache-2.0']
+    publish_licenseName = 'The Apache Software License, Version 2.0'
+    publish_licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+}
+
+group = publish_groupId
+version = publish_version
+
+install {
+    repositories.mavenInstaller {
+        pom.project {
+            name publish_name
+            description publish_description
+            url publish_siteUrl
+            inceptionYear publish_year
+
+            packaging publish_packaging
+            groupId publish_groupId
+            artifactId publish_artifactId
+            version publish_version
+
+            licenses {
+                license {
+                    name publish_licenseName
+                    url publish_licenseUrl
+                    distribution 'repo'
+                }
+            }
+            scm {
+                connection publish_gitUrl
+                url publish_siteUrl
+
+            }
+            developers {
+                developer {
+                    name publish_developerName
+                    email publish_developerEmail
+                }
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+
+    configurations = ['archives']
+
+    pkg {
+        repo = publish_bintrayRepo
+        name = publish_bintrayName
+        desc = publish_description
+        licenses = publish_license
+        vcsUrl = publish_gitUrl
+        publish = true
+        publicDownloadNumbers = true
+        version {
+            name = publish_version
+        }
+    }
+}

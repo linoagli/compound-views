@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Author: Faye-Lino Agli -->
+<resources>
+    <declare-styleable name="TextField">
+        <attr name="android:lines" />
+        <attr name="android:gravity" />
+        <attr name="android:inputType" />
+        <attr name="android:hint" />
+    </declare-styleable>
+</resources>
