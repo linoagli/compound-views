@@ -18,13 +18,15 @@ import android.view.View;
 import android.widget.FrameLayout;
 
 public class ButlerLayout extends FrameLayout {
-    private final long ANIMATION_DURATION = 200;
+    public enum PresentationMode { FromLeft, FromTop, FromRight, FromBottom }
 
     private FrameLayout backdrop;
     private FrameLayout container;
-    private int width;
-    private int height;
+    private Options options = new Options();
     private boolean isViewPresented = false;
+
+    private int containerWidth;
+    private int containerHeight;
 
     public ButlerLayout(@NonNull Context context) {
         super(context);
@@ -38,6 +40,10 @@ public class ButlerLayout extends FrameLayout {
         super(context, attrs, defStyleAttr);
     }
 
+    public Options getOptions() {
+        return options;
+    }
+
     public boolean isViewPresented() {
         return isViewPresented;
     }
@@ -45,21 +51,8 @@ public class ButlerLayout extends FrameLayout {
     public void presentView(View view) {
         if (isViewPresented) return; // TODO Maybe throw an exception?
 
-        width = getWidth();
-        height = (int) (getHeight() * 2f / 3f);
-
-        LayoutParams params;
-
-        backdrop = new FrameLayout(getContext());
-        params = new LayoutParams(getWidth(), getHeight());
-        backdrop.setLayoutParams(params);
-        backdrop.setBackgroundColor(Color.parseColor("#77000000"));
-
-        container = new FrameLayout(getContext());
-        params = new LayoutParams(width, height);
-        params.topMargin = getHeight();
-        container.setLayoutParams(params);
-        container.setBackgroundColor(Color.parseColor("#ffffff"));
+        makeBackdrop();
+        makeContainer();
 
         addView(backdrop);
         addView(container);
@@ -71,17 +64,79 @@ public class ButlerLayout extends FrameLayout {
                 dismissPresentedView();
             }
         });
+        container.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // Do nothing
+            }
+        });
 
-        ValueAnimator animator = ValueAnimator.ofInt(getHeight(), getHeight() - height);
-        animator.setDuration(ANIMATION_DURATION);
+        makePresentationAnimator().start();
+    }
+
+    public void dismissPresentedView() {
+        if (!isViewPresented) return; // TODO Maybe throw an exception?
+
+        makeDismissAnimator().start();
+    }
+
+    private void makeBackdrop() {
+        backdrop = new FrameLayout(getContext());
+        LayoutParams params = new LayoutParams(getWidth(), getHeight());
+        backdrop.setLayoutParams(params);
+        backdrop.setBackgroundColor(Color.parseColor(options.backdropBackgroundColor));
+        backdrop.setAlpha(0);
+    }
+
+    private void makeContainer() {
+        if (options.presentationMode == PresentationMode.FromLeft || options.presentationMode == PresentationMode.FromRight) {
+            containerWidth = (int) (getWidth() * options.sizeRatio);
+            containerHeight = getHeight();
+        } else {
+            containerWidth = getWidth();
+            containerHeight = (int) (getHeight() * options.sizeRatio);
+        }
+
+        container = new FrameLayout(getContext());
+        LayoutParams params = new LayoutParams(containerWidth, containerHeight);
+
+        if (options.presentationMode == PresentationMode.FromLeft) params.leftMargin = -containerWidth;
+        if (options.presentationMode == PresentationMode.FromTop) params.topMargin = -containerHeight;
+        if (options.presentationMode == PresentationMode.FromRight) params.leftMargin = getWidth();
+        if (options.presentationMode == PresentationMode.FromBottom) params.bottomMargin = getHeight();
+
+        container.setLayoutParams(params);
+        container.setBackgroundColor(Color.parseColor(options.containerBackgroundColor));
+    }
+
+    private ValueAnimator makePresentationAnimator() {
+        ValueAnimator animator;
+
+        if (options.presentationMode == PresentationMode.FromLeft) {
+            animator = ValueAnimator.ofInt(-containerWidth, 0);
+        } else if (options.presentationMode == PresentationMode.FromTop) {
+            animator = ValueAnimator.ofInt(-containerHeight, 0);
+        } else if (options.presentationMode == PresentationMode.FromRight) {
+            animator = ValueAnimator.ofInt(getWidth(), getWidth() - containerWidth);
+        } else {
+            animator = ValueAnimator.ofInt(getHeight(), getHeight() - containerHeight);
+        }
+
+        animator.setDuration(options.animationDuration);
 
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 backdrop.setAlpha(animation.getAnimatedFraction());
 
+                int margin = (int) animation.getAnimatedValue();
                 LayoutParams params = (LayoutParams) container.getLayoutParams();
-                params.topMargin = (int) animation.getAnimatedValue();
+
+                if (options.presentationMode == PresentationMode.FromLeft) params.leftMargin = margin;
+                if (options.presentationMode == PresentationMode.FromTop) params.topMargin = margin;
+                if (options.presentationMode == PresentationMode.FromRight) params.leftMargin = margin;
+                if (options.presentationMode == PresentationMode.FromBottom) params.topMargin = margin;
+
                 container.setLayoutParams(params);
             }
         });
@@ -102,23 +157,37 @@ public class ButlerLayout extends FrameLayout {
             public void onAnimationRepeat(Animator animation) {}
         });
 
-        animator.start();
+        return animator;
     }
 
-    // TODO May need to handle soft input dismissal as well
-    public void dismissPresentedView() {
-        if (!isViewPresented) return; // TODO Maybe throw an exception?
+    private ValueAnimator makeDismissAnimator() {
+        ValueAnimator animator;
 
-        ValueAnimator animator = ValueAnimator.ofInt(getHeight() - height, 2 * getHeight());
-        animator.setDuration(2 * ANIMATION_DURATION);
+        if (options.presentationMode == PresentationMode.FromLeft) {
+            animator = ValueAnimator.ofInt(0, -2 * containerWidth);
+        } else if (options.presentationMode == PresentationMode.FromTop) {
+            animator = ValueAnimator.ofInt(0, -2 * containerHeight);
+        } else if (options.presentationMode == PresentationMode.FromRight) {
+            animator = ValueAnimator.ofInt(getWidth() - containerWidth, 2 * getWidth());
+        } else {
+            animator = ValueAnimator.ofInt(getHeight() - containerHeight, 2 * getHeight());
+        }
+
+        animator.setDuration(2 * options.animationDuration);
 
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 backdrop.setAlpha(1f - animation.getAnimatedFraction());
 
+                int margin = (int) animation.getAnimatedValue();
                 LayoutParams params = (LayoutParams) container.getLayoutParams();
-                params.topMargin = (int) animation.getAnimatedValue();
+
+                if (options.presentationMode == PresentationMode.FromLeft) params.leftMargin = margin;
+                if (options.presentationMode == PresentationMode.FromTop) params.topMargin = margin;
+                if (options.presentationMode == PresentationMode.FromRight) params.leftMargin = margin;
+                if (options.presentationMode == PresentationMode.FromBottom) params.topMargin = margin;
+
                 container.setLayoutParams(params);
             }
         });
@@ -144,6 +213,39 @@ public class ButlerLayout extends FrameLayout {
             public void onAnimationRepeat(Animator animation) {}
         });
 
-        animator.start();
+        return animator;
+    }
+
+    public static class Options {
+        private PresentationMode presentationMode = PresentationMode.FromBottom;
+        private long animationDuration = 200;
+        private float sizeRatio = .75f;
+        private String backdropBackgroundColor = "#77000000";
+        private String containerBackgroundColor = "#ffffff";
+
+        public Options setPresentationMode(PresentationMode mode) {
+            this.presentationMode = mode;
+            return this;
+        }
+
+        public Options setAnimationDuration(long duration) {
+            this.animationDuration = duration;
+            return this;
+        }
+
+        public Options setSizeRatio(float ratio) {
+            this.sizeRatio = ratio;
+            return this;
+        }
+
+        public Options setBackdropBackgroundColor(String color) {
+            this.backdropBackgroundColor = color;
+            return this;
+        }
+
+        public Options setContainerBackgroundColor(String color) {
+            this.containerBackgroundColor = color;
+            return this;
+        }
     }
 }
