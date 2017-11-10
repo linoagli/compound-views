@@ -31,8 +31,8 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'com.android.support:appcompat-v7:26.0.1'
-    implementation 'com.android.support:design:26.0.1'
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    implementation 'com.android.support:design:26.1.0'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.0'
@@ -55,7 +55,7 @@ ext {
     publish_developerName = 'Faye-Lino Agli'
     publish_developerEmail = 'perfectionisms@gmail.com'
 
-    publish_version = '1.3'
+    publish_version = '1.8'
     publish_groupId = 'com.linoagli.android'
     publish_artifactId = 'compound-views'
     publish_packaging = 'aar'

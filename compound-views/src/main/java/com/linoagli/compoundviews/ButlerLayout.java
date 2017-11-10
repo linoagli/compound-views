@@ -22,9 +22,11 @@ public class ButlerLayout extends FrameLayout {
 
     private FrameLayout backdrop;
     private FrameLayout container;
-    private Options options = new Options();
-    private boolean isViewPresented = false;
 
+    private Options options = new Options();
+    private Callback callback;
+
+    private boolean isViewPresented = false;
     private int containerWidth;
     private int containerHeight;
 
@@ -42,6 +44,10 @@ public class ButlerLayout extends FrameLayout {
 
     public Options getOptions() {
         return options;
+    }
+
+    public void setCallback(Callback callback) {
+        this.callback = callback;
     }
 
     public boolean isViewPresented() {
@@ -67,7 +73,7 @@ public class ButlerLayout extends FrameLayout {
         container.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Do nothing
+                // Do nothing. We want to prevent click events from bleeding through empty spaces of this view
             }
         });
 
@@ -148,6 +154,8 @@ public class ButlerLayout extends FrameLayout {
             @Override
             public void onAnimationEnd(Animator animation) {
                 isViewPresented = true;
+
+                if (callback != null) callback.onViewPresented(container.getChildAt(0));
             }
 
             @Override
@@ -204,6 +212,8 @@ public class ButlerLayout extends FrameLayout {
                 backdrop = null;
                 container = null;
                 isViewPresented = false;
+
+                if (callback != null) callback.onViewDismissed();
             }
 
             @Override
@@ -247,5 +257,10 @@ public class ButlerLayout extends FrameLayout {
             this.containerBackgroundColor = color;
             return this;
         }
+    }
+
+    public interface Callback {
+        void onViewPresented(@NonNull View view);
+        void onViewDismissed();
     }
 }
